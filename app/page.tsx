@@ -14,10 +14,13 @@ import Link from "next/link"
 
 type ConversionState = "idle" | "converting" | "completed" | "error"
 
+// 🔧 ÚNICA MUDANÇA NA INTERFACE - Para trabalhar com Cobalt
 interface ConversionResult {
-  file: string
+  downloadUrl: string // ← Mudou de 'file' para 'downloadUrl'
   filename: string
-  size: number
+  size?: number // ← Opcional agora
+  platform?: string // ← Novo campo
+  method?: string // ← Novo campo
 }
 
 export default function WaifuConvert() {
@@ -30,7 +33,7 @@ export default function WaifuConvert() {
   const [logoUrl, setLogoUrl] = useState("")
   const { theme, setTheme } = useTheme()
 
-  // 🚀 SUBSTITUA PELA SUA URL DO RAILWAY
+  // 🚀 SUA URL DO RAILWAY (MESMA DE ANTES)
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
 
   const supportedPlatforms = [
@@ -67,7 +70,7 @@ export default function WaifuConvert() {
     { value: "320", label: "320 kbps (Highest Quality)" },
   ]
 
-  // Detect platform from URL
+  // Detect platform from URL (MANTIDO IGUAL)
   const detectPlatform = (url: string): string => {
     try {
       const urlObj = new URL(url)
@@ -92,6 +95,7 @@ export default function WaifuConvert() {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
+  // 🔧 ÚNICA MUDANÇA IMPORTANTE - Função de conversão atualizada para Cobalt
   const handleConvert = async () => {
     if (!url || !format || !quality) return
 
@@ -102,7 +106,9 @@ export default function WaifuConvert() {
     try {
       const platform = detectPlatform(url)
 
-      // 🌐 USANDO A URL DO RAILWAY
+      console.log("🚀 Enviando para Cobalt backend...")
+
+      // 🌐 USANDO A MESMA URL DO RAILWAY
       const response = await fetch(`${BACKEND_URL}/download`, {
         method: "POST",
         headers: {
@@ -122,45 +128,34 @@ export default function WaifuConvert() {
         throw new Error(data.error || "Conversion failed")
       }
 
+      console.log("✅ Sucesso com Cobalt:", data)
+
       setConversionResult(data)
       setConversionState("completed")
     } catch (err) {
-      console.error("Conversion error:", err)
+      console.error("❌ Erro na conversão:", err)
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
       setConversionState("error")
     }
   }
 
+  // 🔧 MUDANÇA NA FUNÇÃO DE DOWNLOAD - Para trabalhar com Cobalt
   const handleDownload = async () => {
-    if (conversionResult) {
-      try {
-        const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
+    if (!conversionResult) return
 
-        // Fetch o arquivo como blob
-        const response = await fetch(downloadUrl)
-        const blob = await response.blob()
-
-        // Criar URL do blob
-        const blobUrl = window.URL.createObjectURL(blob)
-
-        // Criar link de download
-        const link = document.createElement("a")
-        link.href = blobUrl
-        link.download = conversionResult.filename
-        link.style.display = "none"
-
-        // Adicionar ao DOM, clicar e remover
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-
-        // Limpar URL do blob
-        window.URL.revokeObjectURL(blobUrl)
-      } catch (error) {
-        console.error("Download error:", error)
-        // Fallback para método original
-        window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
-      }
+    try {
+      // Cobalt retorna URL direta, então fazemos download direto
+      const link = document.createElement("a")
+      link.href = conversionResult.downloadUrl
+      link.download = conversionResult.filename
+      link.target = "_blank"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error("Erro no download:", error)
+      // Fallback: abrir em nova aba
+      window.open(conversionResult.downloadUrl, "_blank")
     }
   }
 
@@ -238,7 +233,7 @@ export default function WaifuConvert() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-black dark:via-purple-950/50 dark:to-gray-900 relative overflow-hidden">
-      {/* Gothic Anime Background Elements */}
+      {/* Gothic Anime Background Elements - MANTIDO IGUAL */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Floating geometric shapes */}
         <div className="absolute top-20 left-10 w-32 h-32 border border-purple-300/30 dark:border-purple-500/20 rotate-45 animate-pulse"></div>
@@ -256,7 +251,7 @@ export default function WaifuConvert() {
         <div className="absolute top-1/2 right-1/4 w-3 h-3 bg-purple-300/30 dark:bg-purple-300/20 rounded-full animate-bounce delay-1000"></div>
       </div>
 
-      {/* Header */}
+      {/* Header - MANTIDO IGUAL */}
       <header className="border-b border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <CustomLogo logoUrl={logoUrl} onLogoChange={setLogoUrl} />
@@ -277,7 +272,7 @@ export default function WaifuConvert() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 relative z-10">
         <div className="max-w-2xl mx-auto space-y-8">
-          {/* Hero Section with Anime Elements */}
+          {/* Hero Section - PEQUENA MUDANÇA NO TEXTO */}
           <div className="text-center space-y-4 relative">
             {/* Anime-style decorative elements */}
             <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -303,13 +298,16 @@ export default function WaifuConvert() {
               <div className="w-1 h-16 bg-gradient-to-b from-pink-500 to-transparent animate-pulse delay-500"></div>
             </div>
             <p className="text-lg text-gray-600 dark:text-gray-300 relative">
+              {/* 🔧 ÚNICA MUDANÇA NO TEXTO - Mencionar melhoria */}
               Elegant, fast, and ad-free video conversion platform
+              <br />
+              <span className="text-sm text-purple-600 dark:text-purple-400">🚀 Now with improved success rate!</span>
               {/* Subtle anime-style underline */}
               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
             </p>
           </div>
 
-          {/* Enhanced Supported Platforms */}
+          {/* Enhanced Supported Platforms - MANTIDO IGUAL */}
           <div className="flex flex-wrap justify-center gap-3">
             {supportedPlatforms.map((platform, index) => (
               <Badge
@@ -323,7 +321,7 @@ export default function WaifuConvert() {
             ))}
           </div>
 
-          {/* Enhanced Conversion Form */}
+          {/* Enhanced Conversion Form - MANTIDO QUASE IGUAL */}
           <Card className="border-purple-200 dark:border-purple-700/50 shadow-2xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-sm relative overflow-hidden">
             {/* Anime-style card decoration */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
@@ -353,7 +351,7 @@ export default function WaifuConvert() {
 
               {conversionState === "idle" && (
                 <>
-                  {/* URL Input */}
+                  {/* URL Input - MANTIDO IGUAL */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
                       <div className="w-1 h-4 bg-purple-500 animate-pulse"></div>
@@ -373,7 +371,7 @@ export default function WaifuConvert() {
                     </div>
                   </div>
 
-                  {/* Format and Quality Selection */}
+                  {/* Format and Quality Selection - MANTIDO IGUAL */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
@@ -443,7 +441,7 @@ export default function WaifuConvert() {
                     </div>
                   </div>
 
-                  {/* Enhanced Convert Button */}
+                  {/* Enhanced Convert Button - MANTIDO IGUAL */}
                   <Button
                     onClick={handleConvert}
                     disabled={!url || !format || !quality}
@@ -468,8 +466,12 @@ export default function WaifuConvert() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Processing Conversion</h3>
-                    <p className="text-gray-600 dark:text-gray-300">Your video is being converted. Please wait...</p>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      {/* 🔧 PEQUENA MUDANÇA NO TEXTO */}🚀 Processing with Enhanced Engine
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      Your video is being converted with improved success rate...
+                    </p>
                     <div className="flex justify-center space-x-2 mt-4">
                       <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce delay-100"></div>
@@ -491,7 +493,13 @@ export default function WaifuConvert() {
                     <p className="text-gray-600 dark:text-gray-300">Your video has been successfully converted</p>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                       <p className="font-medium">{conversionResult.filename}</p>
-                      <p>Size: {formatFileSize(conversionResult.size)}</p>
+                      {/* 🔧 MUDANÇA PEQUENA - Mostrar info adicional se disponível */}
+                      {conversionResult.size && <p>Size: {formatFileSize(conversionResult.size)}</p>}
+                      {conversionResult.platform && (
+                        <p className="text-purple-600 dark:text-purple-400">
+                          Platform: {conversionResult.platform} | Method: {conversionResult.method}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -515,7 +523,7 @@ export default function WaifuConvert() {
                     </Button>
 
                     <Button
-                      onClick={() => window.open("https://ko-fi.com", "_blank")}
+                      onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
                       variant="outline"
                       className="border-purple-300 dark:border-purple-500/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 relative overflow-hidden group"
                     >
@@ -549,7 +557,7 @@ export default function WaifuConvert() {
             </CardContent>
           </Card>
 
-          {/* Enhanced Features */}
+          {/* Enhanced Features - MANTIDO IGUAL */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               {
@@ -579,7 +587,7 @@ export default function WaifuConvert() {
           </div>
         </div>
 
-        {/* Enhanced Tutorial Section */}
+        {/* Enhanced Tutorial Section - MANTIDO IGUAL */}
         <div className="max-w-4xl mx-auto mt-16">
           <div className="text-center mb-12 relative">
             {/* Anime-style section divider */}
@@ -643,11 +651,11 @@ export default function WaifuConvert() {
         </div>
       </main>
 
-      {/* Enhanced Ko-fi Floating Button */}
+      {/* Enhanced Ko-fi Floating Button - MANTIDO IGUAL */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-300/30 dark:border-purple-500/30 relative overflow-hidden group"
-          onClick={() => window.open("https://ko-fi.com", "_blank")}
+          onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
         >
           {/* Anime-style button glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -658,7 +666,7 @@ export default function WaifuConvert() {
         </Button>
       </div>
 
-      {/* Enhanced Footer */}
+      {/* Enhanced Footer - MANTIDO IGUAL */}
       <footer className="border-t border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm mt-16 relative">
         {/* Anime-style footer accent */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-50"></div>
