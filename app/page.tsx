@@ -29,7 +29,9 @@ export default function WaifuConvert() {
   const [error, setError] = useState("")
   const [logoUrl, setLogoUrl] = useState("")
   const { theme, setTheme } = useTheme()
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null)
+
+  // 🚀 SUBSTITUA PELA SUA URL DO RAILWAY
+  const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
 
   const supportedPlatforms = [
     { name: "YouTube", color: "bg-red-600 hover:bg-red-700", domains: ["youtube.com", "youtu.be"] },
@@ -100,8 +102,8 @@ export default function WaifuConvert() {
     try {
       const platform = detectPlatform(url)
 
-      // Chamada direta para o backend (sem fila)
-      const response = await fetch("http://localhost:5000/download", {
+      // 🌐 USANDO A URL DO RAILWAY
+      const response = await fetch(`${BACKEND_URL}/download`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +134,7 @@ export default function WaifuConvert() {
   const handleDownload = async () => {
     if (conversionResult) {
       try {
-        const downloadUrl = `http://localhost:5000${conversionResult.file}`
+        const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
 
         // Fetch o arquivo como blob
         const response = await fetch(downloadUrl)
@@ -157,7 +159,7 @@ export default function WaifuConvert() {
       } catch (error) {
         console.error("Download error:", error)
         // Fallback para método original
-        window.open(`http://localhost:5000${conversionResult.file}`, "_blank")
+        window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
       }
     }
   }
@@ -513,7 +515,7 @@ export default function WaifuConvert() {
                     </Button>
 
                     <Button
-                      onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
+                      onClick={() => window.open("https://ko-fi.com", "_blank")}
                       variant="outline"
                       className="border-purple-300 dark:border-purple-500/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 relative overflow-hidden group"
                     >
@@ -645,7 +647,7 @@ export default function WaifuConvert() {
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-300/30 dark:border-purple-500/30 relative overflow-hidden group"
-          onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
+          onClick={() => window.open("https://ko-fi.com", "_blank")}
         >
           {/* Anime-style button glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
