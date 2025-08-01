@@ -515,7 +515,7 @@ export default function WaifuConvert() {
                     </Button>
 
                     <Button
-                      onClick={() => window.open("https://www.waifuconvert.com/", "_blank")}
+                      onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
                       variant="outline"
                       className="border-purple-300 dark:border-purple-500/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 relative overflow-hidden group"
                     >
@@ -647,7 +647,7 @@ export default function WaifuConvert() {
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-300/30 dark:border-purple-500/30 relative overflow-hidden group"
-          onClick={() => window.open("https://www.waifuconvert.com/", "_blank")}
+          onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
         >
           {/* Anime-style button glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
