@@ -317,7 +317,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                  © 2024 WaifuConvert. All rights reserved.
+                  © 2025 WaifuConvert. All rights reserved.
                 </span>
                 <p className="text-xs text-gray-500 dark:text-gray-500">Gothic elegance meets modern functionality</p>
               </div>
