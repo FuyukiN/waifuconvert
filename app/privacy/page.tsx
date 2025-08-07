@@ -188,7 +188,7 @@ export default function PrivacyPage() {
                     <h3 className="text-gray-900 dark:text-white font-semibold mb-3">⏰ Retention Times:</h3>
                     <ul className="space-y-2">
                       <li>
-                        <strong>Converted files:</strong> 1 hour maximum
+                        <strong>Converted files:</strong> 2 hour maximum
                       </li>
                       <li>
                         <strong>Server logs:</strong> 24 hours
@@ -288,7 +288,7 @@ export default function PrivacyPage() {
               </div>
               <div>
                 <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                  © 2024 WaifuConvert. All rights reserved.
+                  © 2025 WaifuConvert. All rights reserved.
                 </span>
                 <p className="text-xs text-gray-500 dark:text-gray-500">Gothic elegance meets modern functionality</p>
               </div>
