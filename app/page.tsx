@@ -30,6 +30,10 @@ export default function WaifuConvert() {
   const [logoUrl, setLogoUrl] = useState("")
   const { theme, setTheme } = useTheme()
 
+  // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD
+  const [downloadCooldown, setDownloadCooldown] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
   // 🚀 SUBSTITUA PELA SUA URL DO RAILWAY
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
 
@@ -131,8 +135,9 @@ export default function WaifuConvert() {
     }
   }
 
+  // 🕐 FUNÇÃO DE DOWNLOAD COM TIMER DE 2 MINUTOS
   const handleDownload = async () => {
-    if (conversionResult) {
+    if (conversionResult && !downloadCooldown) {
       try {
         const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
 
@@ -156,12 +161,42 @@ export default function WaifuConvert() {
 
         // Limpar URL do blob
         window.URL.revokeObjectURL(blobUrl)
+
+        // 🕐 INICIAR TIMER DE 2 MINUTOS
+        startDownloadCooldown()
       } catch (error) {
         console.error("Download error:", error)
         // Fallback para método original
         window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
+
+        // 🕐 INICIAR TIMER MESMO NO FALLBACK
+        startDownloadCooldown()
       }
     }
+  }
+
+  // 🕐 FUNÇÃO PARA INICIAR O COOLDOWN
+  const startDownloadCooldown = () => {
+    setDownloadCooldown(true)
+    setCooldownSeconds(120) // 2 minutos = 120 segundos
+
+    const countdown = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdown)
+          setDownloadCooldown(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  // 🕐 FUNÇÃO PARA FORMATAR O TEMPO DO COOLDOWN
+  const formatCooldownTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes}:${secs.toString().padStart(2, "0")}`
   }
 
   const handleConvertAgain = () => {
@@ -171,6 +206,9 @@ export default function WaifuConvert() {
     setConversionState("idle")
     setConversionResult(null)
     setError("")
+    // 🕐 RESETAR TIMER QUANDO CONVERTER NOVAMENTE
+    setDownloadCooldown(false)
+    setCooldownSeconds(0)
   }
 
   const platformTutorials = [
@@ -496,13 +534,21 @@ export default function WaifuConvert() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    {/* 🕐 BOTÃO DE DOWNLOAD COM TIMER */}
                     <Button
                       onClick={handleDownload}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white relative overflow-hidden group"
+                      disabled={downloadCooldown}
+                      className={`${
+                        downloadCooldown
+                          ? "bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-60"
+                          : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      } text-white relative overflow-hidden group transition-all duration-300`}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <Download className="w-4 h-4 mr-2 relative z-10" />
-                      <span className="relative z-10">Download File</span>
+                      <span className="relative z-10">
+                        {downloadCooldown ? `Aguarde ${formatCooldownTime(cooldownSeconds)}` : "Download File"}
+                      </span>
                     </Button>
 
                     <Button
