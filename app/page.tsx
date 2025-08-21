@@ -552,8 +552,8 @@ export default function WaifuConvert() {
                       <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                       <AlertDescription className="text-orange-700 dark:text-orange-300">
                         {isDownloading
-                          ? "🔄 Download em progresso... Aguarde a conclusão."
-                          : `🛡️ Proteção anti-spam ativa. Próximo download em: ${formatCooldownTime(cooldownSeconds)}`}
+                          ? "Download in progress... Wait for it to complete."
+                          : `Next download on: ${formatCooldownTime(cooldownSeconds)}`}
                       </AlertDescription>
                     </Alert>
                   )}
