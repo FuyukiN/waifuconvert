@@ -30,7 +30,7 @@ export default function WaifuConvert() {
   const [logoUrl, setLogoUrl] = useState("")
   const { theme, setTheme } = useTheme()
 
-  // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD - AGORA 3 MINUTOS
+  // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD
   const [downloadCooldown, setDownloadCooldown] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
 
@@ -96,23 +96,6 @@ export default function WaifuConvert() {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
-  // 🔧 FUNÇÃO PARA INICIAR O COOLDOWN - AGORA 3 MINUTOS (180 SEGUNDOS)
-  const startDownloadCooldown = () => {
-    setDownloadCooldown(true)
-    setCooldownSeconds(180) // 🕐 3 MINUTOS = 180 SEGUNDOS
-
-    const countdown = setInterval(() => {
-      setCooldownSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdown)
-          setDownloadCooldown(false)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
   const handleConvert = async () => {
     if (!url || !format || !quality) return
 
@@ -145,10 +128,6 @@ export default function WaifuConvert() {
 
       setConversionResult(data)
       setConversionState("completed")
-
-      // 🚨 CORREÇÃO CRÍTICA: INICIAR TIMER INSTANTANEAMENTE!
-      // Timer inicia IMEDIATAMENTE quando conversão termina
-      startDownloadCooldown()
     } catch (err) {
       console.error("Conversion error:", err)
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
@@ -156,7 +135,7 @@ export default function WaifuConvert() {
     }
   }
 
-  // 🔧 FUNÇÃO DE DOWNLOAD SIMPLIFICADA - SEM INICIAR TIMER (JÁ ESTÁ ATIVO)
+  // 🕐 FUNÇÃO DE DOWNLOAD COM TIMER DE 2 MINUTOS
   const handleDownload = async () => {
     if (conversionResult && !downloadCooldown) {
       try {
@@ -183,13 +162,34 @@ export default function WaifuConvert() {
         // Limpar URL do blob
         window.URL.revokeObjectURL(blobUrl)
 
-        // 🔧 TIMER JÁ ESTÁ ATIVO - NÃO PRECISA INICIAR NOVAMENTE
+        // 🕐 INICIAR TIMER DE 2 MINUTOS
+        startDownloadCooldown()
       } catch (error) {
         console.error("Download error:", error)
         // Fallback para método original
         window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
+
+        // 🕐 INICIAR TIMER MESMO NO FALLBACK
+        startDownloadCooldown()
       }
     }
+  }
+
+  // 🕐 FUNÇÃO PARA INICIAR O COOLDOWN
+  const startDownloadCooldown = () => {
+    setDownloadCooldown(true)
+    setCooldownSeconds(120) // 2 minutos = 120 segundos
+
+    const countdown = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdown)
+          setDownloadCooldown(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
   }
 
   // 🕐 FUNÇÃO PARA FORMATAR O TEMPO DO COOLDOWN
@@ -534,7 +534,7 @@ export default function WaifuConvert() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {/* 🚨 BOTÃO DE DOWNLOAD COM TIMER INSTANTÂNEO - 3 MINUTOS */}
+                    {/* 🕐 BOTÃO DE DOWNLOAD COM TIMER */}
                     <Button
                       onClick={handleDownload}
                       disabled={downloadCooldown}
