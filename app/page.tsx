@@ -33,6 +33,7 @@ export default function WaifuConvert() {
   // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD
   const [downloadCooldown, setDownloadCooldown] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
+  const [isDownloading, setIsDownloading] = useState(false) // 🆕 Estado para controlar download em progresso
 
   // 🚀 SUBSTITUA PELA SUA URL DO RAILWAY
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
@@ -135,56 +136,66 @@ export default function WaifuConvert() {
     }
   }
 
-  // 🕐 FUNÇÃO DE DOWNLOAD COM TIMER DE 2 MINUTOS
+  // 🕐 FUNÇÃO DE DOWNLOAD COM TIMER INSTANTÂNEO - ANTI-SPAM
   const handleDownload = async () => {
-    if (conversionResult && !downloadCooldown) {
-      try {
-        const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
+    // 🚨 PROTEÇÃO ANTI-SPAM: Verifica se já está em cooldown ou baixando
+    if (downloadCooldown || !conversionResult) {
+      return
+    }
 
-        // Fetch o arquivo como blob
-        const response = await fetch(downloadUrl)
-        const blob = await response.blob()
+    // 🕐 INICIA O TIMER IMEDIATAMENTE (ANTES DE QUALQUER PROCESSAMENTO)
+    console.log("🛡️ Iniciando proteção anti-spam...")
+    setIsDownloading(true)
+    startDownloadCooldown()
 
-        // Criar URL do blob
-        const blobUrl = window.URL.createObjectURL(blob)
+    try {
+      const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
 
-        // Criar link de download
-        const link = document.createElement("a")
-        link.href = blobUrl
-        link.download = conversionResult.filename
-        link.style.display = "none"
+      // Fetch o arquivo como blob
+      const response = await fetch(downloadUrl)
+      const blob = await response.blob()
 
-        // Adicionar ao DOM, clicar e remover
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+      // Criar URL do blob
+      const blobUrl = window.URL.createObjectURL(blob)
 
-        // Limpar URL do blob
-        window.URL.revokeObjectURL(blobUrl)
+      // Criar link de download
+      const link = document.createElement("a")
+      link.href = blobUrl
+      link.download = conversionResult.filename
+      link.style.display = "none"
 
-        // 🕐 INICIAR TIMER DE 2 MINUTOS
-        startDownloadCooldown()
-      } catch (error) {
-        console.error("Download error:", error)
-        // Fallback para método original
-        window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
+      // Adicionar ao DOM, clicar e remover
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-        // 🕐 INICIAR TIMER MESMO NO FALLBACK
-        startDownloadCooldown()
-      }
+      // Limpar URL do blob
+      window.URL.revokeObjectURL(blobUrl)
+
+      console.log("✅ Download concluído com sucesso")
+    } catch (error) {
+      console.error("❌ Erro no download:", error)
+      // Fallback para método original
+      window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
+    } finally {
+      // 🔓 Libera o estado de download (mas mantém o cooldown)
+      setIsDownloading(false)
     }
   }
 
-  // 🕐 FUNÇÃO PARA INICIAR O COOLDOWN
+  // 🕐 FUNÇÃO PARA INICIAR O COOLDOWN (AGORA MAIS RIGOROSA)
   const startDownloadCooldown = () => {
     setDownloadCooldown(true)
     setCooldownSeconds(120) // 2 minutos = 120 segundos
+
+    console.log("🕐 Timer anti-spam ativado: 2 minutos")
 
     const countdown = setInterval(() => {
       setCooldownSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(countdown)
           setDownloadCooldown(false)
+          console.log("✅ Timer anti-spam finalizado")
           return 0
         }
         return prev - 1
@@ -206,9 +217,11 @@ export default function WaifuConvert() {
     setConversionState("idle")
     setConversionResult(null)
     setError("")
-    // 🕐 RESETAR TIMER QUANDO CONVERTER NOVAMENTE
+    // 🕐 RESETAR TODOS OS ESTADOS DE PROTEÇÃO
     setDownloadCooldown(false)
     setCooldownSeconds(0)
+    setIsDownloading(false)
+    console.log("🔄 Estados resetados para nova conversão")
   }
 
   const platformTutorials = [
@@ -533,13 +546,25 @@ export default function WaifuConvert() {
                     </div>
                   </div>
 
+                  {/* 🛡️ ALERTA DE PROTEÇÃO ANTI-SPAM */}
+                  {(downloadCooldown || isDownloading) && (
+                    <Alert className="border-orange-300 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-900/20 mb-4">
+                      <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      <AlertDescription className="text-orange-700 dark:text-orange-300">
+                        {isDownloading
+                          ? "🔄 Download em progresso... Aguarde a conclusão."
+                          : `🛡️ Proteção anti-spam ativa. Próximo download em: ${formatCooldownTime(cooldownSeconds)}`}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {/* 🕐 BOTÃO DE DOWNLOAD COM TIMER */}
+                    {/* 🕐 BOTÃO DE DOWNLOAD COM PROTEÇÃO ANTI-SPAM MELHORADA */}
                     <Button
                       onClick={handleDownload}
-                      disabled={downloadCooldown}
+                      disabled={downloadCooldown || isDownloading}
                       className={`${
-                        downloadCooldown
+                        downloadCooldown || isDownloading
                           ? "bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-60"
                           : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                       } text-white relative overflow-hidden group transition-all duration-300`}
@@ -547,7 +572,11 @@ export default function WaifuConvert() {
                       <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <Download className="w-4 h-4 mr-2 relative z-10" />
                       <span className="relative z-10">
-                        {downloadCooldown ? `Aguarde ${formatCooldownTime(cooldownSeconds)}` : "Download File"}
+                        {isDownloading
+                          ? "Baixando..."
+                          : downloadCooldown
+                            ? `Aguarde ${formatCooldownTime(cooldownSeconds)}`
+                            : "Download File"}
                       </span>
                     </Button>
 
