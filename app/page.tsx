@@ -30,10 +30,9 @@ export default function WaifuConvert() {
   const [logoUrl, setLogoUrl] = useState("")
   const { theme, setTheme } = useTheme()
 
-  // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD
+  // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD - AGORA 3 MINUTOS
   const [downloadCooldown, setDownloadCooldown] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
-  const [isDownloading, setIsDownloading] = useState(false) // 🆕 Estado para controlar download em progresso
 
   // 🚀 SUBSTITUA PELA SUA URL DO RAILWAY
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
@@ -97,6 +96,23 @@ export default function WaifuConvert() {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
+  // 🔧 FUNÇÃO PARA INICIAR O COOLDOWN - AGORA 3 MINUTOS (180 SEGUNDOS)
+  const startDownloadCooldown = () => {
+    setDownloadCooldown(true)
+    setCooldownSeconds(180) // 🕐 3 MINUTOS = 180 SEGUNDOS
+
+    const countdown = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdown)
+          setDownloadCooldown(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
   const handleConvert = async () => {
     if (!url || !format || !quality) return
 
@@ -129,6 +145,10 @@ export default function WaifuConvert() {
 
       setConversionResult(data)
       setConversionState("completed")
+
+      // 🚨 CORREÇÃO CRÍTICA: INICIAR TIMER INSTANTANEAMENTE!
+      // Timer inicia IMEDIATAMENTE quando conversão termina
+      startDownloadCooldown()
     } catch (err) {
       console.error("Conversion error:", err)
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
@@ -136,71 +156,40 @@ export default function WaifuConvert() {
     }
   }
 
-  // 🕐 FUNÇÃO DE DOWNLOAD COM TIMER INSTANTÂNEO - ANTI-SPAM
+  // 🔧 FUNÇÃO DE DOWNLOAD SIMPLIFICADA - SEM INICIAR TIMER (JÁ ESTÁ ATIVO)
   const handleDownload = async () => {
-    // 🚨 PROTEÇÃO ANTI-SPAM: Verifica se já está em cooldown ou baixando
-    if (downloadCooldown || isDownloading || !conversionResult) {
-      return
+    if (conversionResult && !downloadCooldown) {
+      try {
+        const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
+
+        // Fetch o arquivo como blob
+        const response = await fetch(downloadUrl)
+        const blob = await response.blob()
+
+        // Criar URL do blob
+        const blobUrl = window.URL.createObjectURL(blob)
+
+        // Criar link de download
+        const link = document.createElement("a")
+        link.href = blobUrl
+        link.download = conversionResult.filename
+        link.style.display = "none"
+
+        // Adicionar ao DOM, clicar e remover
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        // Limpar URL do blob
+        window.URL.revokeObjectURL(blobUrl)
+
+        // 🔧 TIMER JÁ ESTÁ ATIVO - NÃO PRECISA INICIAR NOVAMENTE
+      } catch (error) {
+        console.error("Download error:", error)
+        // Fallback para método original
+        window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
+      }
     }
-
-    // 🕐 INICIA O TIMER IMEDIATAMENTE (ANTES DE QUALQUER PROCESSAMENTO)
-    console.log("🛡️ Iniciando proteção anti-spam...")
-    setIsDownloading(true)
-    startDownloadCooldown()
-
-    try {
-      const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
-
-      // Fetch o arquivo como blob
-      const response = await fetch(downloadUrl)
-      const blob = await response.blob()
-
-      // Criar URL do blob
-      const blobUrl = window.URL.createObjectURL(blob)
-
-      // Criar link de download
-      const link = document.createElement("a")
-      link.href = blobUrl
-      link.download = conversionResult.filename
-      link.style.display = "none"
-
-      // Adicionar ao DOM, clicar e remover
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      // Limpar URL do blob
-      window.URL.revokeObjectURL(blobUrl)
-
-      console.log("✅ Download concluído com sucesso")
-    } catch (error) {
-      console.error("❌ Erro no download:", error)
-      // Fallback para método original
-      window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
-    } finally {
-      // 🔓 Libera o estado de download (mas mantém o cooldown)
-      setIsDownloading(false)
-    }
-  }
-
-  // 🕐 FUNÇÃO PARA INICIAR O COOLDOWN (AGORA MAIS RIGOROSA)
-  const startDownloadCooldown = () => {
-    setDownloadCooldown(true)
-    setCooldownSeconds(120) // 2 minutos = 120 segundos
-
-    console.log("🕐 Timer anti-spam ativado: 2 minutos")
-
-    const countdown = setInterval(() => {
-      setCooldownSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdown)
-          setDownloadCooldown(false)
-          console.log("✅ Timer anti-spam finalizado")
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
   }
 
   // 🕐 FUNÇÃO PARA FORMATAR O TEMPO DO COOLDOWN
@@ -217,11 +206,9 @@ export default function WaifuConvert() {
     setConversionState("idle")
     setConversionResult(null)
     setError("")
-    // 🕐 RESETAR TODOS OS ESTADOS DE PROTEÇÃO
+    // 🕐 RESETAR TIMER QUANDO CONVERTER NOVAMENTE
     setDownloadCooldown(false)
     setCooldownSeconds(0)
-    setIsDownloading(false)
-    console.log("🔄 Estados resetados para nova conversão")
   }
 
   const platformTutorials = [
@@ -546,25 +533,13 @@ export default function WaifuConvert() {
                     </div>
                   </div>
 
-                  {/* 🛡️ ALERTA DE PROTEÇÃO ANTI-SPAM */}
-                  {(downloadCooldown || isDownloading) && (
-                    <Alert className="border-orange-300 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-900/20 mb-4">
-                      <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                      <AlertDescription className="text-orange-700 dark:text-orange-300">
-                        {isDownloading
-                          ? "🔄 Download em progresso... Aguarde a conclusão."
-                          : `🛡️ Proteção anti-spam ativa. Próximo download em: ${formatCooldownTime(cooldownSeconds)}`}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {/* 🕐 BOTÃO DE DOWNLOAD COM PROTEÇÃO ANTI-SPAM MELHORADA */}
+                    {/* 🚨 BOTÃO DE DOWNLOAD COM TIMER INSTANTÂNEO - 3 MINUTOS */}
                     <Button
                       onClick={handleDownload}
-                      disabled={downloadCooldown || isDownloading}
+                      disabled={downloadCooldown}
                       className={`${
-                        downloadCooldown || isDownloading
+                        downloadCooldown
                           ? "bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-60"
                           : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                       } text-white relative overflow-hidden group transition-all duration-300`}
@@ -572,11 +547,7 @@ export default function WaifuConvert() {
                       <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <Download className="w-4 h-4 mr-2 relative z-10" />
                       <span className="relative z-10">
-                        {isDownloading
-                          ? "Baixando..."
-                          : downloadCooldown
-                            ? `Aguarde ${formatCooldownTime(cooldownSeconds)}`
-                            : "Download File"}
+                        {downloadCooldown ? `Aguarde ${formatCooldownTime(cooldownSeconds)}` : "Download File"}
                       </span>
                     </Button>
 
