@@ -286,6 +286,14 @@ export default function WaifuConvert() {
         `}
       </Script>
 
+      {/* 📊 Umami Analytics */}
+      <Script
+        defer
+        src="https://cloud.umami.is/script.js"
+        data-website-id="228eca6f-ed87-4de5-b228-693a0a1d46e5"
+        strategy="afterInteractive"
+      />
+
       <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-black dark:via-purple-950/50 dark:to-gray-900 relative overflow-hidden">
         {/* Gothic Anime Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
