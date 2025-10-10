@@ -37,27 +37,24 @@ export default function WaifuConvert() {
 
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
 
-  // 🎯 Carregar Ko-fi Widget quando o componente montar
+  // 🎯 Carregar Ko-fi Widget com configuração otimizada
   useEffect(() => {
-    // Carregar script do Ko-fi
     const kofiScript = document.createElement("script")
     kofiScript.src = "https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"
     kofiScript.async = true
     kofiScript.onload = () => {
-      // Inicializar o widget após carregar o script
       if (window.kofiWidgetOverlay) {
         window.kofiWidgetOverlay.draw("waifuconvert", {
           type: "floating-chat",
           "floating-chat.donateButton.text": "Support me",
-          "floating-chat.donateButton.background-color": "#794bc4",
-          "floating-chat.donateButton.text-color": "#fff",
+          "floating-chat.donateButton.background-color": "#ffffff",
+          "floating-chat.donateButton.text-color": "#323842",
         })
       }
     }
     document.body.appendChild(kofiScript)
 
     return () => {
-      // Limpar script quando desmontar
       if (kofiScript.parentNode) {
         kofiScript.parentNode.removeChild(kofiScript)
       }
@@ -734,9 +731,6 @@ export default function WaifuConvert() {
           </div>
         </main>
 
-        {/* ❌ REMOVIDO: Botão flutuante Ko-fi */}
-        {/* O widget Ko-fi agora é carregado via script no useEffect */}
-
         {/* Enhanced Footer */}
         <footer className="border-t border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm mt-16 relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-50"></div>
@@ -791,4 +785,21 @@ export default function WaifuConvert() {
       </div>
     </>
   )
+}
+
+// Tipos para o Ko-fi widget
+declare global {
+  interface Window {
+    kofiWidgetOverlay?: {
+      draw: (
+        username: string,
+        config: {
+          type: string
+          "floating-chat.donateButton.text": string
+          "floating-chat.donateButton.background-color": string
+          "floating-chat.donateButton.text-color": string
+        },
+      ) => void
+    }
+  }
 }
