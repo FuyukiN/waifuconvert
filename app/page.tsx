@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Moon, Sun, Download, Heart, RotateCcw, Zap, Shield, Globe, Sparkles, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,30 +36,6 @@ export default function WaifuConvert() {
   const [isDownloading, setIsDownloading] = useState(false)
 
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
-
-  // 🎯 Carregar Ko-fi Widget com configuração otimizada
-  useEffect(() => {
-    const kofiScript = document.createElement("script")
-    kofiScript.src = "https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"
-    kofiScript.async = true
-    kofiScript.onload = () => {
-      if (window.kofiWidgetOverlay) {
-        window.kofiWidgetOverlay.draw("waifuconvert", {
-          type: "floating-chat",
-          "floating-chat.donateButton.text": "Support me",
-          "floating-chat.donateButton.background-color": "#ffffff",
-          "floating-chat.donateButton.text-color": "#323842",
-        })
-      }
-    }
-    document.body.appendChild(kofiScript)
-
-    return () => {
-      if (kofiScript.parentNode) {
-        kofiScript.parentNode.removeChild(kofiScript)
-      }
-    }
-  }, [])
 
   const supportedPlatforms = [
     { name: "YouTube", color: "bg-red-600 hover:bg-red-700", domains: ["youtube.com", "youtu.be"] },
@@ -731,6 +707,20 @@ export default function WaifuConvert() {
           </div>
         </main>
 
+        {/* Enhanced Ko-fi Floating Button */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-300/30 dark:border-purple-500/30 relative overflow-hidden group"
+            onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="flex flex-col items-center relative z-10">
+              <Heart className="w-5 h-5" />
+              <span className="text-xs">Ko-fi</span>
+            </div>
+          </Button>
+        </div>
+
         {/* Enhanced Footer */}
         <footer className="border-t border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm mt-16 relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-50"></div>
@@ -785,21 +775,4 @@ export default function WaifuConvert() {
       </div>
     </>
   )
-}
-
-// Tipos para o Ko-fi widget
-declare global {
-  interface Window {
-    kofiWidgetOverlay?: {
-      draw: (
-        username: string,
-        config: {
-          type: string
-          "floating-chat.donateButton.text": string
-          "floating-chat.donateButton.background-color": string
-          "floating-chat.donateButton.text-color": string
-        },
-      ) => void
-    }
-  }
 }
