@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Moon, Sun, Download, Heart, RotateCcw, Zap, Shield, Globe, Sparkles, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useTheme } from "next-themes"
 import { CustomLogo } from "@/components/custom-logo"
 import Link from "next/link"
+import Script from "next/script"
 
 type ConversionState = "idle" | "converting" | "completed" | "error"
 
@@ -30,13 +31,38 @@ export default function WaifuConvert() {
   const [logoUrl, setLogoUrl] = useState("")
   const { theme, setTheme } = useTheme()
 
-  // 🕐 ESTADOS PARA O TIMER DE DOWNLOAD
   const [downloadCooldown, setDownloadCooldown] = useState(false)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
-  const [isDownloading, setIsDownloading] = useState(false) // 🆕 Estado para controlar download em progresso
+  const [isDownloading, setIsDownloading] = useState(false)
 
-  // 🚀 SUBSTITUA PELA SUA URL DO RAILWAY
   const BACKEND_URL = "https://waifuconvert-backend-production.up.railway.app"
+
+  // 🎯 Carregar Ko-fi Widget quando o componente montar
+  useEffect(() => {
+    // Carregar script do Ko-fi
+    const kofiScript = document.createElement("script")
+    kofiScript.src = "https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"
+    kofiScript.async = true
+    kofiScript.onload = () => {
+      // Inicializar o widget após carregar o script
+      if (window.kofiWidgetOverlay) {
+        window.kofiWidgetOverlay.draw("waifuconvert", {
+          type: "floating-chat",
+          "floating-chat.donateButton.text": "Support me",
+          "floating-chat.donateButton.background-color": "#794bc4",
+          "floating-chat.donateButton.text-color": "#fff",
+        })
+      }
+    }
+    document.body.appendChild(kofiScript)
+
+    return () => {
+      // Limpar script quando desmontar
+      if (kofiScript.parentNode) {
+        kofiScript.parentNode.removeChild(kofiScript)
+      }
+    }
+  }, [])
 
   const supportedPlatforms = [
     { name: "YouTube", color: "bg-red-600 hover:bg-red-700", domains: ["youtube.com", "youtu.be"] },
@@ -72,7 +98,6 @@ export default function WaifuConvert() {
     { value: "320", label: "320 kbps (Highest Quality)" },
   ]
 
-  // Detect platform from URL
   const detectPlatform = (url: string): string => {
     try {
       const urlObj = new URL(url)
@@ -107,7 +132,6 @@ export default function WaifuConvert() {
     try {
       const platform = detectPlatform(url)
 
-      // 🌐 USANDO A URL DO RAILWAY
       const response = await fetch(`${BACKEND_URL}/download`, {
         method: "POST",
         headers: {
@@ -136,14 +160,11 @@ export default function WaifuConvert() {
     }
   }
 
-  // 🕐 FUNÇÃO DE DOWNLOAD COM TIMER INSTANTÂNEO - ANTI-SPAM
   const handleDownload = async () => {
-    // 🚨 PROTEÇÃO ANTI-SPAM: Verifica se já está em cooldown ou baixando
     if (downloadCooldown || !conversionResult) {
       return
     }
 
-    // 🕐 INICIA O TIMER IMEDIATAMENTE (ANTES DE QUALQUER PROCESSAMENTO)
     console.log("🛡️ Iniciando proteção anti-spam...")
     setIsDownloading(true)
     startDownloadCooldown()
@@ -151,42 +172,34 @@ export default function WaifuConvert() {
     try {
       const downloadUrl = `${BACKEND_URL}${conversionResult.file}`
 
-      // Fetch o arquivo como blob
       const response = await fetch(downloadUrl)
       const blob = await response.blob()
 
-      // Criar URL do blob
       const blobUrl = window.URL.createObjectURL(blob)
 
-      // Criar link de download
       const link = document.createElement("a")
       link.href = blobUrl
       link.download = conversionResult.filename
       link.style.display = "none"
 
-      // Adicionar ao DOM, clicar e remover
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
 
-      // Limpar URL do blob
       window.URL.revokeObjectURL(blobUrl)
 
       console.log("✅ Download concluído com sucesso")
     } catch (error) {
       console.error("❌ Erro no download:", error)
-      // Fallback para método original
       window.open(`${BACKEND_URL}${conversionResult.file}`, "_blank")
     } finally {
-      // 🔓 Libera o estado de download (mas mantém o cooldown)
       setIsDownloading(false)
     }
   }
 
-  // 🕐 FUNÇÃO PARA INICIAR O COOLDOWN (AGORA MAIS RIGOROSA)
   const startDownloadCooldown = () => {
     setDownloadCooldown(true)
-    setCooldownSeconds(120) // 2 minutos = 120 segundos
+    setCooldownSeconds(120)
 
     console.log("🕐 Timer anti-spam ativado: 2 minutos")
 
@@ -203,7 +216,6 @@ export default function WaifuConvert() {
     }, 1000)
   }
 
-  // 🕐 FUNÇÃO PARA FORMATAR O TEMPO DO COOLDOWN
   const formatCooldownTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -217,7 +229,6 @@ export default function WaifuConvert() {
     setConversionState("idle")
     setConversionResult(null)
     setError("")
-    // 🕐 RESETAR TODOS OS ESTADOS DE PROTEÇÃO
     setDownloadCooldown(false)
     setCooldownSeconds(0)
     setIsDownloading(false)
@@ -288,503 +299,513 @@ export default function WaifuConvert() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-black dark:via-purple-950/50 dark:to-gray-900 relative overflow-hidden">
-      {/* Gothic Anime Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Floating geometric shapes */}
-        <div className="absolute top-20 left-10 w-32 h-32 border border-purple-300/30 dark:border-purple-500/20 rotate-45 animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-24 h-24 border border-pink-300/30 dark:border-pink-500/20 rotate-12 animate-pulse delay-1000"></div>
-        <div className="absolute bottom-40 left-20 w-40 h-40 border border-purple-200/20 dark:border-purple-400/10 -rotate-12 animate-pulse delay-500"></div>
-        <div className="absolute bottom-20 right-10 w-20 h-20 border border-pink-200/30 dark:border-pink-400/20 rotate-45 animate-pulse delay-700"></div>
+    <>
+      {/* 📊 Google Analytics */}
+      <Script src="https://www.googletagmanager.com/gtag/js?id=G-DK7JYJ02DX" strategy="afterInteractive" />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-DK7JYJ02DX', {
+            page_path: window.location.pathname,
+          });
+        `}
+      </Script>
 
-        {/* Anime-style light rays */}
-        <div className="absolute top-0 left-1/4 w-1 h-full bg-gradient-to-b from-purple-300/20 dark:from-purple-500/20 via-transparent to-transparent transform -skew-x-12"></div>
-        <div className="absolute top-0 right-1/3 w-1 h-full bg-gradient-to-b from-pink-300/20 dark:from-pink-500/20 via-transparent to-transparent transform skew-x-12"></div>
+      <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-black dark:via-purple-950/50 dark:to-gray-900 relative overflow-hidden">
+        {/* Gothic Anime Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-32 h-32 border border-purple-300/30 dark:border-purple-500/20 rotate-45 animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 border border-pink-300/30 dark:border-pink-500/20 rotate-12 animate-pulse delay-1000"></div>
+          <div className="absolute bottom-40 left-20 w-40 h-40 border border-purple-200/20 dark:border-purple-400/10 -rotate-12 animate-pulse delay-500"></div>
+          <div className="absolute bottom-20 right-10 w-20 h-20 border border-pink-200/30 dark:border-pink-400/20 rotate-45 animate-pulse delay-700"></div>
 
-        {/* Floating particles */}
-        <div className="absolute top-1/4 left-1/2 w-2 h-2 bg-purple-400/40 dark:bg-purple-400/30 rounded-full animate-bounce delay-300"></div>
-        <div className="absolute top-3/4 left-1/4 w-1 h-1 bg-pink-400/50 dark:bg-pink-400/40 rounded-full animate-bounce delay-700"></div>
-        <div className="absolute top-1/2 right-1/4 w-3 h-3 bg-purple-300/30 dark:bg-purple-300/20 rounded-full animate-bounce delay-1000"></div>
-      </div>
+          <div className="absolute top-0 left-1/4 w-1 h-full bg-gradient-to-b from-purple-300/20 dark:from-purple-500/20 via-transparent to-transparent transform -skew-x-12"></div>
+          <div className="absolute top-0 right-1/3 w-1 h-full bg-gradient-to-b from-pink-300/20 dark:from-pink-500/20 via-transparent to-transparent transform skew-x-12"></div>
 
-      {/* Header */}
-      <header className="border-b border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <CustomLogo logoUrl={logoUrl} onLogoChange={setLogoUrl} />
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="border-purple-300 dark:border-purple-600/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-300 relative overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-100/50 dark:from-purple-600/20 to-pink-100/50 dark:to-pink-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 relative z-10" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 z-10" />
-          </Button>
+          <div className="absolute top-1/4 left-1/2 w-2 h-2 bg-purple-400/40 dark:bg-purple-400/30 rounded-full animate-bounce delay-300"></div>
+          <div className="absolute top-3/4 left-1/4 w-1 h-1 bg-pink-400/50 dark:bg-pink-400/40 rounded-full animate-bounce delay-700"></div>
+          <div className="absolute top-1/2 right-1/4 w-3 h-3 bg-purple-300/30 dark:bg-purple-300/20 rounded-full animate-bounce delay-1000"></div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 relative z-10">
-        <div className="max-w-2xl mx-auto space-y-8">
-          {/* Hero Section with Anime Elements */}
-          <div className="text-center space-y-4 relative">
-            {/* Anime-style decorative elements */}
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <div className="flex space-x-2">
-                <div className="w-8 h-0.5 bg-gradient-to-r from-transparent via-purple-400 dark:via-purple-500 to-transparent"></div>
-                <div className="w-4 h-0.5 bg-gradient-to-r from-transparent via-pink-400 dark:via-pink-500 to-transparent"></div>
+        {/* Header */}
+        <header className="border-b border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-40">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <CustomLogo logoUrl={logoUrl} onLogoChange={setLogoUrl} />
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="border-purple-300 dark:border-purple-600/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-300 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-100/50 dark:from-purple-600/20 to-pink-100/50 dark:to-pink-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 relative z-10" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 z-10" />
+            </Button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-8 relative z-10">
+          <div className="max-w-2xl mx-auto space-y-8">
+            {/* Hero Section with Anime Elements */}
+            <div className="text-center space-y-4 relative">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <div className="flex space-x-2">
+                  <div className="w-8 h-0.5 bg-gradient-to-r from-transparent via-purple-400 dark:via-purple-500 to-transparent"></div>
+                  <div className="w-4 h-0.5 bg-gradient-to-r from-transparent via-pink-400 dark:via-pink-500 to-transparent"></div>
+                </div>
               </div>
+
+              <div className="flex justify-center items-center space-x-4 mb-6">
+                <div className="w-1 h-16 bg-gradient-to-b from-purple-500 to-transparent animate-pulse"></div>
+                <div className="space-y-2 relative">
+                  <h2 className="text-4xl font-bold text-gray-900 dark:text-white relative">
+                    Convert Videos to{" "}
+                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent relative">
+                      MP3 & MP4
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 blur-lg -z-10"></div>
+                    </span>
+                  </h2>
+                  <div className="w-24 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto animate-pulse"></div>
+                </div>
+                <div className="w-1 h-16 bg-gradient-to-b from-pink-500 to-transparent animate-pulse delay-500"></div>
+              </div>
+              <p className="text-lg text-gray-600 dark:text-gray-300 relative">
+                Elegant, fast, and ad-free video conversion platform
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
+              </p>
             </div>
 
-            <div className="flex justify-center items-center space-x-4 mb-6">
-              <div className="w-1 h-16 bg-gradient-to-b from-purple-500 to-transparent animate-pulse"></div>
-              <div className="space-y-2 relative">
-                <h2 className="text-4xl font-bold text-gray-900 dark:text-white relative">
-                  Convert Videos to{" "}
-                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent relative">
-                    MP3 & MP4
-                    {/* Anime-style glow effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 blur-lg -z-10"></div>
+            {/* Enhanced Supported Platforms */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {supportedPlatforms.map((platform, index) => (
+                <Badge
+                  key={platform.name}
+                  className={`${platform.color} text-white border-0 px-4 py-2 text-sm font-medium shadow-lg transition-all duration-300 cursor-default relative overflow-hidden group`}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <span className="relative z-10">{platform.name}</span>
+                </Badge>
+              ))}
+            </div>
+
+            {/* Enhanced Conversion Form */}
+            <Card className="border-purple-200 dark:border-purple-700/50 shadow-2xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
+              <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-pink-500/50 to-transparent"></div>
+
+              <CardHeader className="text-center border-b border-purple-200 dark:border-purple-800/30 relative">
+                <CardTitle className="text-2xl text-gray-900 dark:text-white flex items-center justify-center space-x-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                  <span className="relative">
+                    Conversion Portal
+                    <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
                   </span>
-                </h2>
-                <div className="w-24 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto animate-pulse"></div>
-              </div>
-              <div className="w-1 h-16 bg-gradient-to-b from-pink-500 to-transparent animate-pulse delay-500"></div>
-            </div>
-            <p className="text-lg text-gray-600 dark:text-gray-300 relative">
-              Elegant, fast, and ad-free video conversion platform
-              {/* Subtle anime-style underline */}
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
-            </p>
-          </div>
+                  <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse delay-500"></div>
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-300">
+                  Enter your video URL and configure conversion parameters
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                {error && (
+                  <Alert className="border-red-300 dark:border-red-700/50 bg-red-50 dark:bg-red-900/20">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
+                  </Alert>
+                )}
 
-          {/* Enhanced Supported Platforms */}
-          <div className="flex flex-wrap justify-center gap-3">
-            {supportedPlatforms.map((platform, index) => (
-              <Badge
-                key={platform.name}
-                className={`${platform.color} text-white border-0 px-4 py-2 text-sm font-medium shadow-lg transition-all duration-300 cursor-default relative overflow-hidden group`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <span className="relative z-10">{platform.name}</span>
-              </Badge>
-            ))}
-          </div>
-
-          {/* Enhanced Conversion Form */}
-          <Card className="border-purple-200 dark:border-purple-700/50 shadow-2xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-sm relative overflow-hidden">
-            {/* Anime-style card decoration */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
-            <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-pink-500/50 to-transparent"></div>
-
-            <CardHeader className="text-center border-b border-purple-200 dark:border-purple-800/30 relative">
-              <CardTitle className="text-2xl text-gray-900 dark:text-white flex items-center justify-center space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                <span className="relative">
-                  Conversion Portal
-                  <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
-                </span>
-                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse delay-500"></div>
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-300">
-                Enter your video URL and configure conversion parameters
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              {/* Error Alert */}
-              {error && (
-                <Alert className="border-red-300 dark:border-red-700/50 bg-red-50 dark:bg-red-900/20">
-                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {conversionState === "idle" && (
-                <>
-                  {/* URL Input */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
-                      <div className="w-1 h-4 bg-purple-500 animate-pulse"></div>
-                      <span>Video URL</span>
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="url"
-                        placeholder="https://youtube.com/watch?v=..."
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        className="border-purple-300 dark:border-purple-600/50 focus:border-purple-500 dark:focus:border-purple-400 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 pl-4 pr-12"
-                      />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Format and Quality Selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {conversionState === "idle" && (
+                  <>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
                         <div className="w-1 h-4 bg-purple-500 animate-pulse"></div>
-                        <span>Format</span>
+                        <span>Video URL</span>
                       </label>
-                      <Select
-                        value={format}
-                        onValueChange={(value) => {
-                          setFormat(value)
-                          setQuality("")
-                        }}
-                      >
-                        <SelectTrigger className="border-purple-300 dark:border-purple-600/50 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white relative overflow-hidden group">
-                          <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 dark:from-purple-600/10 to-pink-50/50 dark:to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <SelectValue placeholder="Select format" className="relative z-10" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-800 border-purple-300 dark:border-purple-600/50">
-                          <SelectItem
-                            value="mp3"
-                            className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
-                          >
-                            MP3 (Audio Only)
-                          </SelectItem>
-                          <SelectItem
-                            value="mp4"
-                            className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
-                          >
-                            MP4 (Video)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="relative">
+                        <Input
+                          type="url"
+                          placeholder="https://youtube.com/watch?v=..."
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          className="border-purple-300 dark:border-purple-600/50 focus:border-purple-500 dark:focus:border-purple-400 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 pl-4 pr-12"
+                        />
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
-                        <div className="w-1 h-4 bg-pink-500 animate-pulse"></div>
-                        <span>Quality</span>
-                      </label>
-                      <Select value={quality} onValueChange={setQuality} disabled={!format}>
-                        <SelectTrigger className="border-purple-300 dark:border-purple-600/50 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white disabled:opacity-50 relative overflow-hidden group">
-                          <div className="absolute inset-0 bg-gradient-to-r from-pink-50/50 dark:from-pink-600/10 to-purple-50/50 dark:to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <SelectValue placeholder="Select quality" className="relative z-10" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-800 border-purple-300 dark:border-purple-600/50">
-                          {format === "mp3"
-                            ? audioQualities.map((q) => (
-                                <SelectItem
-                                  key={q.value}
-                                  value={q.value}
-                                  className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
-                                >
-                                  {q.label}
-                                </SelectItem>
-                              ))
-                            : videoQualities.map((q) => (
-                                <SelectItem
-                                  key={q.value}
-                                  value={q.value}
-                                  className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
-                                >
-                                  {q.label}
-                                </SelectItem>
-                              ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
+                          <div className="w-1 h-4 bg-purple-500 animate-pulse"></div>
+                          <span>Format</span>
+                        </label>
+                        <Select
+                          value={format}
+                          onValueChange={(value) => {
+                            setFormat(value)
+                            setQuality("")
+                          }}
+                        >
+                          <SelectTrigger className="border-purple-300 dark:border-purple-600/50 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 dark:from-purple-600/10 to-pink-50/50 dark:to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <SelectValue placeholder="Select format" className="relative z-10" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-purple-300 dark:border-purple-600/50">
+                            <SelectItem
+                              value="mp3"
+                              className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
+                            >
+                              MP3 (Audio Only)
+                            </SelectItem>
+                            <SelectItem
+                              value="mp4"
+                              className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
+                            >
+                              MP4 (Video)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  {/* Enhanced Convert Button */}
-                  <Button
-                    onClick={handleConvert}
-                    disabled={!url || !format || !quality}
-                    className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 relative overflow-hidden group"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="flex items-center space-x-3 relative z-10">
-                      <Download className="w-6 h-6" />
-                      <span>Convert & Download</span>
-                      <div className="w-1 h-6 bg-white/30"></div>
-                      <Sparkles className="w-4 h-4 animate-pulse" />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center space-x-2">
+                          <div className="w-1 h-4 bg-pink-500 animate-pulse"></div>
+                          <span>Quality</span>
+                        </label>
+                        <Select value={quality} onValueChange={setQuality} disabled={!format}>
+                          <SelectTrigger className="border-purple-300 dark:border-purple-600/50 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white disabled:opacity-50 relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-pink-50/50 dark:from-pink-600/10 to-purple-50/50 dark:to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <SelectValue placeholder="Select quality" className="relative z-10" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-purple-300 dark:border-purple-600/50">
+                            {format === "mp3"
+                              ? audioQualities.map((q) => (
+                                  <SelectItem
+                                    key={q.value}
+                                    value={q.value}
+                                    className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
+                                  >
+                                    {q.label}
+                                  </SelectItem>
+                                ))
+                              : videoQualities.map((q) => (
+                                  <SelectItem
+                                    key={q.value}
+                                    value={q.value}
+                                    className="text-gray-900 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-900/50 focus:bg-purple-50 dark:focus:bg-purple-900/50"
+                                  >
+                                    {q.label}
+                                  </SelectItem>
+                                ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </Button>
-                </>
-              )}
 
-              {conversionState === "converting" && (
-                <div className="text-center space-y-6 py-8">
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <div className="w-16 h-16 border-4 border-purple-200 dark:border-purple-800 border-t-purple-600 dark:border-t-purple-400 rounded-full animate-spin"></div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Processing Conversion</h3>
-                    <p className="text-gray-600 dark:text-gray-300">Your video is being converted. Please wait...</p>
-                    <div className="flex justify-center space-x-2 mt-4">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce delay-100"></div>
-                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-200"></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {conversionState === "completed" && conversionResult && (
-                <div className="text-center space-y-6 py-8">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 relative">
-                    <Download className="w-8 h-8 text-white" />
-                    {/* Anime-style success glow */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400/50 to-pink-400/50 rounded-full blur-lg animate-pulse"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Conversion Complete</h3>
-                    <p className="text-gray-600 dark:text-gray-300">Your video has been successfully converted</p>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      <p className="font-medium">{conversionResult.filename}</p>
-                      <p>Size: {formatFileSize(conversionResult.size)}</p>
-                    </div>
-                  </div>
-
-                  {/* 🛡️ ALERTA DE PROTEÇÃO ANTI-SPAM */}
-                  {(downloadCooldown || isDownloading) && (
-                    <Alert className="border-orange-300 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-900/20 mb-4">
-                      <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                      <AlertDescription className="text-orange-700 dark:text-orange-300">
-                        {isDownloading
-                          ? "Download in progress... Wait for it to complete."
-                          : `Next download on: ${formatCooldownTime(cooldownSeconds)}`}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {/* 🕐 BOTÃO DE DOWNLOAD COM PROTEÇÃO ANTI-SPAM MELHORADA */}
                     <Button
-                      onClick={handleDownload}
-                      disabled={downloadCooldown || isDownloading}
-                      className={`${
-                        downloadCooldown || isDownloading
-                          ? "bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-60"
-                          : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                      } text-white relative overflow-hidden group transition-all duration-300`}
+                      onClick={handleConvert}
+                      disabled={!url || !format || !quality}
+                      className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 relative overflow-hidden group"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <Download className="w-4 h-4 mr-2 relative z-10" />
-                      <span className="relative z-10">
-                        {isDownloading
-                          ? "Baixando..."
-                          : downloadCooldown
-                            ? `Aguarde ${formatCooldownTime(cooldownSeconds)}`
-                            : "Download File"}
-                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="flex items-center space-x-3 relative z-10">
+                        <Download className="w-6 h-6" />
+                        <span>Convert & Download</span>
+                        <div className="w-1 h-6 bg-white/30"></div>
+                        <Sparkles className="w-4 h-4 animate-pulse" />
+                      </div>
                     </Button>
+                  </>
+                )}
+
+                {conversionState === "converting" && (
+                  <div className="text-center space-y-6 py-8">
+                    <div className="flex justify-center">
+                      <div className="relative">
+                        <div className="w-16 h-16 border-4 border-purple-200 dark:border-purple-800 border-t-purple-600 dark:border-t-purple-400 rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Processing Conversion</h3>
+                      <p className="text-gray-600 dark:text-gray-300">Your video is being converted. Please wait...</p>
+                      <div className="flex justify-center space-x-2 mt-4">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce delay-100"></div>
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-200"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {conversionState === "completed" && conversionResult && (
+                  <div className="text-center space-y-6 py-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                      <Download className="w-8 h-8 text-white" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/50 to-pink-400/50 rounded-full blur-lg animate-pulse"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Conversion Complete</h3>
+                      <p className="text-gray-600 dark:text-gray-300">Your video has been successfully converted</p>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="font-medium">{conversionResult.filename}</p>
+                        <p>Size: {formatFileSize(conversionResult.size)}</p>
+                      </div>
+                    </div>
+
+                    {(downloadCooldown || isDownloading) && (
+                      <Alert className="border-orange-300 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-900/20 mb-4">
+                        <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        <AlertDescription className="text-orange-700 dark:text-orange-300">
+                          {isDownloading
+                            ? "Download in progress... Wait for it to complete."
+                            : `Next download in: ${formatCooldownTime(cooldownSeconds)}`}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <Button
+                        onClick={handleDownload}
+                        disabled={downloadCooldown || isDownloading}
+                        className={`${
+                          downloadCooldown || isDownloading
+                            ? "bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-60"
+                            : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                        } text-white relative overflow-hidden group transition-all duration-300`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <Download className="w-4 h-4 mr-2 relative z-10" />
+                        <span className="relative z-10">
+                          {isDownloading
+                            ? "Downloading..."
+                            : downloadCooldown
+                              ? `Wait ${formatCooldownTime(cooldownSeconds)}`
+                              : "Download File"}
+                        </span>
+                      </Button>
+
+                      <Button
+                        onClick={handleConvertAgain}
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white relative overflow-hidden group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <RotateCcw className="w-4 h-4 mr-2 relative z-10" />
+                        <span className="relative z-10">Convert Again</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
+                        variant="outline"
+                        className="border-purple-300 dark:border-purple-500/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 relative overflow-hidden group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 dark:from-purple-600/10 to-pink-50/50 dark:to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <Heart className="w-4 h-4 mr-2 relative z-10" />
+                        <span className="relative z-10">Support Project</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {conversionState === "error" && (
+                  <div className="text-center space-y-6 py-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertCircle className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Conversion Failed</h3>
+                      <p className="text-gray-600 dark:text-gray-300">Please try again or check your URL</p>
+                    </div>
 
                     <Button
                       onClick={handleConvertAgain}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white relative overflow-hidden group"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <RotateCcw className="w-4 h-4 mr-2 relative z-10" />
-                      <span className="relative z-10">Convert Again</span>
-                    </Button>
-
-                    <Button
-                      onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
-                      variant="outline"
-                      className="border-purple-300 dark:border-purple-500/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 relative overflow-hidden group"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 dark:from-purple-600/10 to-pink-50/50 dark:to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <Heart className="w-4 h-4 mr-2 relative z-10" />
-                      <span className="relative z-10">Support Project</span>
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Try Again
                     </Button>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Enhanced Features */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  icon: Shield,
+                  title: "Ad-Free",
+                  desc: "Clean experience without intrusive advertisements",
+                  color: "purple",
+                },
+                { icon: Zap, title: "Fast & Free", desc: "High-speed conversions at no cost to you", color: "pink" },
+                {
+                  icon: Globe,
+                  title: "Multi-Platform",
+                  desc: "Support for six major social platforms",
+                  color: "purple",
+                },
+              ].map((feature, index) => (
+                <Card
+                  key={feature.title}
+                  className="text-center border-purple-200 dark:border-purple-700/50 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                  style={{ animationDelay: `${index * 200}ms` }}
+                >
+                  <div
+                    className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-${feature.color}-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}
+                  ></div>
+                  <CardContent className="pt-6">
+                    <feature.icon className={`w-12 h-12 text-${feature.color}-500 mx-auto mb-4`} />
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{feature.desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Enhanced Tutorial Section */}
+          <div className="max-w-4xl mx-auto mt-16">
+            <div className="text-center mb-12 relative">
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-4">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-purple-400/50 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-pink-400/50 rounded-full animate-pulse delay-200"></div>
+                  <div className="w-2 h-2 bg-purple-400/50 rounded-full animate-pulse delay-400"></div>
                 </div>
-              )}
+              </div>
 
-              {conversionState === "error" && (
-                <div className="text-center space-y-6 py-8">
-                  <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Conversion Failed</h3>
-                    <p className="text-gray-600 dark:text-gray-300">Please try again or check your URL</p>
-                  </div>
+              <div className="flex items-center justify-center space-x-4 mb-6">
+                <div className="w-16 h-0.5 bg-gradient-to-r from-transparent to-purple-500"></div>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white relative">
+                  Platform Tutorials
+                  <div className="absolute -bottom-2 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
+                </h2>
+                <div className="w-16 h-0.5 bg-gradient-to-l from-transparent to-pink-500"></div>
+              </div>
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                Comprehensive guides for each supported platform
+              </p>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {platformTutorials.map((tutorial, index) => (
+                <Card
+                  key={tutorial.platform}
+                  className="border-purple-200 dark:border-purple-700/50 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-pink-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                  <CardHeader className="border-b border-purple-200 dark:border-purple-800/30 relative">
+                    <CardTitle className="flex items-center space-x-3 text-lg">
+                      <div className="w-3 h-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full flex items-center justify-center font-semibold relative">
+                        {index + 1}
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur animate-pulse"></div>
+                      </div>
+                      <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent relative">
+                        {tutorial.platform}
+                        <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <ol className="space-y-3">
+                      {tutorial.steps.map((step, stepIndex) => (
+                        <li key={stepIndex} className="flex items-start space-x-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full flex items-center justify-center font-semibold relative">
+                            {stepIndex + 1}
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur animate-pulse"></div>
+                          </span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </main>
+
+        {/* ❌ REMOVIDO: Botão flutuante Ko-fi */}
+        {/* O widget Ko-fi agora é carregado via script no useEffect */}
+
+        {/* Enhanced Footer */}
+        <footer className="border-t border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm mt-16 relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-50"></div>
+
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center border border-purple-300/30 dark:border-purple-500/30 relative">
+                  <Heart className="w-4 h-4 text-white" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-lg blur animate-pulse"></div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                    © 2025 WaifuConvert. All rights reserved.
+                  </span>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">Gothic elegance meets modern functionality</p>
+                </div>
+              </div>
+
+              <div className="flex space-x-6">
+                <Link href="/terms">
                   <Button
-                    onClick={handleConvertAgain}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    variant="link"
+                    className="text-purple-600 dark:text-purple-300 p-0 h-auto hover:text-pink-600 dark:hover:text-pink-300 transition-colors relative group"
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Try Again
+                    <span className="relative z-10">Terms</span>
+                    <div className="absolute bottom-0 left-0 w-0 h-px bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300"></div>
                   </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Enhanced Features */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                icon: Shield,
-                title: "Ad-Free",
-                desc: "Clean experience without intrusive advertisements",
-                color: "purple",
-              },
-              { icon: Zap, title: "Fast & Free", desc: "High-speed conversions at no cost to you", color: "pink" },
-              { icon: Globe, title: "Multi-Platform", desc: "Support for six major social platforms", color: "purple" },
-            ].map((feature, index) => (
-              <Card
-                key={feature.title}
-                className="text-center border-purple-200 dark:border-purple-700/50 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
-                style={{ animationDelay: `${index * 200}ms` }}
-              >
-                <div
-                  className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-${feature.color}-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}
-                ></div>
-                <CardContent className="pt-6">
-                  <feature.icon className={`w-12 h-12 text-${feature.color}-500 mx-auto mb-4`} />
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{feature.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Enhanced Tutorial Section */}
-        <div className="max-w-4xl mx-auto mt-16">
-          <div className="text-center mb-12 relative">
-            {/* Anime-style section divider */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-4">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-purple-400/50 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-pink-400/50 rounded-full animate-pulse delay-200"></div>
-                <div className="w-2 h-2 bg-purple-400/50 rounded-full animate-pulse delay-400"></div>
+                </Link>
+                <Link href="/privacy">
+                  <Button
+                    variant="link"
+                    className="text-purple-600 dark:text-purple-300 p-0 h-auto hover:text-pink-600 dark:hover:text-pink-300 transition-colors relative group"
+                  >
+                    <span className="relative z-10">Privacy</span>
+                    <div className="absolute bottom-0 left-0 w-0 h-px bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300"></div>
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button
+                    variant="link"
+                    className="text-purple-600 dark:text-purple-300 p-0 h-auto hover:text-pink-600 dark:hover:text-pink-300 transition-colors relative group"
+                  >
+                    <span className="relative z-10">Contact</span>
+                    <div className="absolute bottom-0 left-0 w-0 h-px bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300"></div>
+                  </Button>
+                </Link>
               </div>
             </div>
-
-            <div className="flex items-center justify-center space-x-4 mb-6">
-              <div className="w-16 h-0.5 bg-gradient-to-r from-transparent to-purple-500"></div>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white relative">
-                Platform Tutorials
-                <div className="absolute -bottom-2 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
-              </h2>
-              <div className="w-16 h-0.5 bg-gradient-to-l from-transparent to-pink-500"></div>
-            </div>
-            <p className="text-lg text-gray-600 dark:text-gray-300">Comprehensive guides for each supported platform</p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {platformTutorials.map((tutorial, index) => (
-              <Card
-                key={tutorial.platform}
-                className="border-purple-200 dark:border-purple-700/50 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {/* Anime-style card accent */}
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-pink-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                <CardHeader className="border-b border-purple-200 dark:border-purple-800/30 relative">
-                  <CardTitle className="flex items-center space-x-3 text-lg">
-                    <div className="w-3 h-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full flex items-center justify-center font-semibold relative">
-                      {index + 1}
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur animate-pulse"></div>
-                    </div>
-                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent relative">
-                      {tutorial.platform}
-                      <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <ol className="space-y-3">
-                    {tutorial.steps.map((step, stepIndex) => (
-                      <li key={stepIndex} className="flex items-start space-x-3">
-                        <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full flex items-center justify-center font-semibold relative">
-                          {stepIndex + 1}
-                          <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur animate-pulse"></div>
-                        </span>
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      {/* Enhanced Ko-fi Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 border border-purple-300/30 dark:border-purple-500/30 relative overflow-hidden group"
-          onClick={() => window.open("https://ko-fi.com/waifuconvert", "_blank")}
-        >
-          {/* Anime-style button glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div className="flex flex-col items-center relative z-10">
-            <Heart className="w-5 h-5" />
-            <span className="text-xs">Ko-fi</span>
-          </div>
-        </Button>
+        </footer>
       </div>
-
-      {/* Enhanced Footer */}
-      <footer className="border-t border-purple-200 dark:border-purple-800/50 bg-white/90 dark:bg-black/80 backdrop-blur-sm mt-16 relative">
-        {/* Anime-style footer accent */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-50"></div>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center border border-purple-300/30 dark:border-purple-500/30 relative">
-                <Heart className="w-4 h-4 text-white" />
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-lg blur animate-pulse"></div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                  © 2025 WaifuConvert. All rights reserved.
-                </span>
-                <p className="text-xs text-gray-500 dark:text-gray-500">Gothic elegance meets modern functionality</p>
-              </div>
-            </div>
-
-            <div className="flex space-x-6">
-              <Link href="/terms">
-                <Button
-                  variant="link"
-                  className="text-purple-600 dark:text-purple-300 p-0 h-auto hover:text-pink-600 dark:hover:text-pink-300 transition-colors relative group"
-                >
-                  <span className="relative z-10">Terms</span>
-                  <div className="absolute bottom-0 left-0 w-0 h-px bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300"></div>
-                </Button>
-              </Link>
-              <Link href="/privacy">
-                <Button
-                  variant="link"
-                  className="text-purple-600 dark:text-purple-300 p-0 h-auto hover:text-pink-600 dark:hover:text-pink-300 transition-colors relative group"
-                >
-                  <span className="relative z-10">Privacy</span>
-                  <div className="absolute bottom-0 left-0 w-0 h-px bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300"></div>
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button
-                  variant="link"
-                  className="text-purple-600 dark:text-purple-300 p-0 h-auto hover:text-pink-600 dark:hover:text-pink-300 transition-colors relative group"
-                >
-                  <span className="relative z-10">Contact</span>
-                  <div className="absolute bottom-0 left-0 w-0 h-px bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300"></div>
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   )
+}
+
+// Adicionar tipos para o Ko-fi widget
+declare global {
+  interface Window {
+    kofiWidgetOverlay?: {
+      draw: (
+        username: string,
+        config: {
+          type: string
+          "floating-chat.donateButton.text": string
+          "floating-chat.donateButton.background-color": string
+          "floating-chat.donateButton.text-color": string
+        },
+      ) => void
+    }
+  }
 }
