@@ -792,20 +792,3 @@ export default function WaifuConvert() {
     </>
   )
 }
-
-// Adicionar tipos para o Ko-fi widget
-declare global {
-  interface Window {
-    kofiWidgetOverlay?: {
-      draw: (
-        username: string,
-        config: {
-          type: string
-          "floating-chat.donateButton.text": string
-          "floating-chat.donateButton.background-color": string
-          "floating-chat.donateButton.text-color": string
-        },
-      ) => void
-    }
-  }
-}
