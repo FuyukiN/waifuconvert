@@ -1,41 +1,61 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from 'next/font/google'
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { Analytics } from '@vercel/analytics/next'
+import type { Metadata, Viewport } from 'next'
+import { Geist, Geist_Mono, Cinzel, Cinzel_Decorative } from 'next/font/google'
+import { ThemeProvider } from '@/components/theme-provider'
+import './globals.css'
 
-const inter = Inter({ subsets: ["latin"] })
+const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
+const cinzel = Cinzel({
+  variable: '--font-cinzel',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
+const cinzelDecorative = Cinzel_Decorative({
+  variable: '--font-cinzel-decorative',
+  subsets: ['latin'],
+  weight: ['400', '700', '900'],
+})
 
 export const metadata: Metadata = {
-  title: "WaifuConvert - Gothic Anime Video to MP3 & MP4 Converter",
+  title: 'WaifuConvert — Gothic Video Converter',
   description:
-    "Convert videos from YouTube, TikTok, Instagram, Twitter, Reddit, and Facebook to MP3 or MP4. Fast, free, ad-free with gothic anime aesthetics and customizable logo.",
-  keywords: "video converter, MP3, MP4, YouTube, TikTok, Instagram, gothic, anime, dark theme, light theme, waifu",
-  generator: 'v0.dev',
-  // 🎨 FAVICON ADICIONADO
-  icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-  },
+    'Convert videos to MP3 & MP4 from YouTube, TikTok, Instagram, X, Reddit and Facebook. Free, ad-free, no limits.',
+  generator: 'v0.app',
+}
+
+export const viewport: Viewport = {
+  colorScheme: 'light dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f1fb' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0612' },
+  ],
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} ${cinzel.variable} ${cinzelDecorative.variable} bg-background`}
+    >
+      <body className="font-sans antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           {children}
         </ThemeProvider>
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )
